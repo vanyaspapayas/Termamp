@@ -108,13 +108,13 @@ def scan_path(root, conn):
 
         audio = File(file, easy=True)
         if audio is None: continue # metadata is not readable, skip for now
-        
+        if file.name == "pineapple.mp3": continue
         result = file.relative_to(root)
         track_to_db(audio, result, conn, root)
         output.append((result,audio))
 
     conn.commit()
-    return len(output)
+    return output
 
 # Getters
 
@@ -153,14 +153,15 @@ if __name__ == "__main__":
     console.print()
     print(open(BASE / "banner.txt").read())
     console.print()
-    console.print("Termamp v0.0.1\nFree to use\n")
+    console.print("Termamp v0.0.1\nFree to use\n", highlight=False)
 
-    music = BASE / Path.cwd() / "music" # a dir where music files are stored
+    music = BASE / "music" # a dir where music files are stored
     # same as main.py location
 
     conn = sqlite3.connect(BASE / "db" / "music.db")
     init_db(conn)
-    count = scan_path(music, conn)
+    initial_scan = scan_path(music, conn)
+    count = len(initial_scan)
 
     # REPL
     current_album = None
@@ -172,12 +173,50 @@ if __name__ == "__main__":
         args = line.split()
         args[0] = args[0].lower()
         if args[0] == "help":
-            console.print("Here's help.")
+            console.print("Commands:")
+            table = Table(box = box.MINIMAL)
+            table.add_column("Command", justify="left")
+            table.add_column("Meaning", justify="left")
+
+            table.add_row("albums", "List all albums")
+            table.add_row("open <id>", "Open specific album by id")
+            table.add_row("play", "Play the current album from start")
+            table.add_row("play <id>", "Play the current album starting from specific track")
+            table.add_row("back", "Leave the current album")
+            table.add_row("add <path>", "Add a folder to the library")
+            table.add_row("scan", "Rescan the whole library")
+            table.add_row("help", "You'll never guess what this does")
+            table.add_row("secret", "dGhpcyB3aWxsIGdldCB5b3Ugcmlja3JvbGxlZC4=")
+            table.add_row("exit", "Leave the application")
+
+            console.print(table)
         elif args[0] == "quit" or args[0] == "exit":
             console.print("Bye!")
             console.print("Always remember to listen to good music.")
             break
-        elif args[0] == "albums" or args[0] == "list":
+
+        elif args[0] == "scan":
+            new = scan_path(music,conn)
+            old_paths = [x[0] for x in initial_scan]
+            differences = [x[0] for x in new if x[0] not in old_paths]
+            console.print("Successfuly finished scanning.")
+            if len(differences) == 1: console.print("New track added:")
+            if len(differences) >= 2: console.print("New tracks added:")
+            for difference in differences:
+                console.print(difference)
+            if len(differences) == 0: console.print("Nothing new.")
+
+        elif args[0] == "secret":
+            print(open(BASE / "secret.txt").read())
+            try:
+                subprocess.run(["afplay", BASE / "music" / "pineapple.mp3"])
+                console.print("Hope you enjoyed it!")
+            except:
+                console.print("\nYou didn't like it? Oke :(")
+        elif args[0] == "albums" or args[0] == "album" or args[0] == "list" or (args[0] == "back" and current_album is not None):
+            current_album = None
+            current_album_data = None
+
             table = Table(box=box.SIMPLE)
             print()
             console.print(f"Total tracks in all albums: {count}")
@@ -246,7 +285,7 @@ if __name__ == "__main__":
                             index = i
                             break
                     else:
-                        index = None
+                        raise IndexError
 
                     for track in current_album_data[index:]:
                         track_path = track["path"]
