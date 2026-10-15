@@ -1,5 +1,5 @@
 Initial scan for audio files in the directory V
 Fill the database — with later additions done manually by command, like add album v
-Functions to work with tracks in the db — list albums, show album by id, retrieve album info, play album or track by id X
-CLI accepting those X
+Functions to work with tracks in the db — list albums, show album by id, retrieve album info, play album or track by id v
+CLI accepting those +-
 Turn images into ASCII X

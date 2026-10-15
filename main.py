@@ -7,7 +7,6 @@ import sqlite3
 import subprocess
 
 
-
 # Errors
 
 class AlbumNotFound(Exception):
@@ -88,7 +87,9 @@ def track_to_db(audio, path, conn, root):
     """ add track to database according to schema """
     name   = first(audio, 'title')
     author = first(audio, 'artist')
-    number = int(first(audio, 'tracknumber'))
+
+    raw = first(audio, 'tracknumber')
+    number = int(raw.split('/')[0]) if raw else None # fix a bug when they give it with a slash
     length = int(audio.info.length)
 
     album_id = get_or_create_album(audio, path, conn, root)
@@ -145,7 +146,14 @@ def time_convert(seconds):
     seconds -= minutes * 60
     return f"{minutes}:{seconds:02d}"
 
+
 if __name__ == "__main__":
+    console = Console()
+    console.print()
+    print(open("banner.txt").read())
+    console.print()
+    console.print("Termamp v0.0.1\nFree to use\n")
+
     music = Path('/Users/vanyaspapayas/music_player/music') # a dir where music files are stored
 
     conn = sqlite3.connect("db/music.db")
@@ -155,7 +163,6 @@ if __name__ == "__main__":
     # REPL
     current_album = None
     current_album_data = None
-    console = Console()
 
     while True:
         line = input("$ ")
@@ -173,7 +180,7 @@ if __name__ == "__main__":
             print()
             console.print(f"Total tracks in all albums: {count}")
 
-            table.add_column("ID", justify="right", style="bold")
+            table.add_column("ID", justify="right", style="dim")
             table.add_column("Artist")
             table.add_column("Album")
             table.add_column("Year", justify="right", style="dim")
@@ -202,10 +209,13 @@ if __name__ == "__main__":
             console.rule(f"[bold]{album['author']} - {album['name']}[/bold]")
             console.print(f"{album['genre']} / {album['year']}")
             console.print('Tracks:')
+
             tracks = get_album_tracks(conn, id)
 
             current_album_data = tracks
+
             track_list= [track for track in tracks]
+
             for track in track_list: 
                 table.add_row(str(track['track_order']), track['name'], time_convert(track['length']))
             console.print(table)
@@ -216,18 +226,38 @@ if __name__ == "__main__":
                 console.print("Reference: play <id>, <id> - a track id inside the album")
                 console.print("Or just simply: play")
             elif len(args) == 1 and current_album is not None:
-                track_path = current_album_data[0]["path"]
-                track_path = music / track_path
-                subprocess.run(["afplay", track_path])
-            elif len(args) == 2 and current_album is not None:
-                try:
-                    current_track = [track for track in current_album_data if track['track_order'] == int(args[1])]
-                    track_path = current_track[0]["path"]
+                for track in current_album_data:
+                    track_path = track["path"]
                     track_path = music / track_path
                     console.print(f"[dim]Playing:[/dim] {track['name']}")
                     subprocess.run(["afplay", track_path])
+            elif len(args) == 2 and current_album is not None:
+                try:
+                    # current_track = [track for track in current_album_data if track['track_order'] == int(args[1])][0]
+                    # track_path = current_track["path"]
+                    # track_path = music / track_path
+                    # console.print(f"[dim]Playing:[/dim] {current_track['name']}")
+                    # subprocess.run(["afplay", track_path])
+                    index = 0
+                    for i, track in enumerate(current_album_data):
+                        if int(track["track_order"]) == int(args[1]):
+                            index = i
+                            break
+                    else:
+                        index = None
+
+                    for track in current_album_data[index:]:
+                        track_path = track["path"]
+                        track_path = music / track_path
+                        console.print(f"[dim]Playing:[/dim] {track['name']}")
+                        subprocess.run(["afplay", track_path])
+
+                except ValueError:
+                    console.print("Track number must be a number.")
+                except IndexError:
+                    console.print("No such track in this album.")
                 except KeyboardInterrupt:
-                    console.print("Stopping. ")
+                    console.print("\nStopping. ")
                 except:
                     console.print("Invalid arguments.")
 
