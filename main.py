@@ -3,8 +3,10 @@ from mutagen import File
 from rich.console import Console
 from rich.table import Table
 from rich import box
+from rich.padding import Padding
 import sqlite3
 import subprocess
+from img2ascii import img_to_ascii
 
 
 # Errors
@@ -183,7 +185,6 @@ if __name__ == "__main__":
             table.add_row("play", "Play the current album from start")
             table.add_row("play <id>", "Play the current album starting from specific track")
             table.add_row("back", "Leave the current album")
-            table.add_row("add <path>", "Add a folder to the library")
             table.add_row("scan", "Rescan the whole library")
             table.add_row("help", "You'll never guess what this does")
             table.add_row("secret", "dGhpcyB3aWxsIGdldCB5b3Ugcmlja3JvbGxlZC4=")
@@ -245,21 +246,29 @@ if __name__ == "__main__":
             table.add_column(justify='right', style = 'dim')
             table.add_column()
             table.add_column(justify='right', style = 'dim')
+            
 
 
             console.rule(f"[bold]{album['author']} - {album['name']}[/bold]")
-            console.print(f"{album['genre']} / {album['year']}")
-            console.print('Tracks:')
+            console.print(f"[dim]{album['genre']} · {album['year']}[/dim]\n")
 
             tracks = get_album_tracks(conn, id)
-
             current_album_data = tracks
 
-            track_list= [track for track in tracks]
-
-            for track in track_list: 
+            for track in tracks:
                 table.add_row(str(track['track_order']), track['name'], time_convert(track['length']))
-            console.print(table)
+
+            if album["cover"]:
+                try:
+                    layout = Table.grid(padding=(0, 3))
+                    layout.add_column()
+                    layout.add_column()
+                    layout.add_row(img_to_ascii(music / album["cover"]), table)
+                    console.print(Padding(layout, (0, 0, 0, 0)))
+                except Exception:
+                    console.print(table)
+            else:
+                console.print(table)
         elif args[0] == "play":
             # now its where fun begins!
             if len(args) == 1 and current_album is None:
@@ -301,7 +310,8 @@ if __name__ == "__main__":
                     console.print("\nStopping. ")
                 except:
                     console.print("Invalid arguments.")
-
+        elif args[0] == "back":
+            console.print("Can be done only in album view mode.")
         else:
             console.print("There is no such command. Check help")
             
