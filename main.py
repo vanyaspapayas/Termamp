@@ -65,7 +65,7 @@ def get_or_create_album(audio, path, conn, root):
         genre = first(audio, 'genre')
         year = first(audio, 'date')
 
-        dir = root / path.parent
+        dir = BASE / root / path.parent
         path_cover = None
 
         for file in dir.iterdir():
@@ -146,17 +146,19 @@ def time_convert(seconds):
     seconds -= minutes * 60
     return f"{minutes}:{seconds:02d}"
 
+BASE = Path(__file__).parent
 
 if __name__ == "__main__":
     console = Console()
     console.print()
-    print(open("banner.txt").read())
+    print(open(BASE / "banner.txt").read())
     console.print()
     console.print("Termamp v0.0.1\nFree to use\n")
 
-    music = Path('/Users/vanyaspapayas/music_player/music') # a dir where music files are stored
+    music = BASE / Path.cwd() / "music" # a dir where music files are stored
+    # same as main.py location
 
-    conn = sqlite3.connect("db/music.db")
+    conn = sqlite3.connect(BASE / "db" / "music.db")
     init_db(conn)
     count = scan_path(music, conn)
 
