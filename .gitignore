@@ -1,4 +1,9 @@
 music/*
 venv/
 db/*
+.DS_Store
+
+!music/.gitkeep
+
+!db/.gitkeep
 
