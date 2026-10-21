@@ -2,8 +2,8 @@ music/*
 venv/
 db/*
 .DS_Store
-
+.__
 !music/.gitkeep
 
 !db/.gitkeep
-
+__pycache__
